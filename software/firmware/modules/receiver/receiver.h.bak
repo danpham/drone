@@ -1,0 +1,10 @@
+
+#define RX_MIN               1199
+#define RX_MAX               2396
+#define RX_RANGE    RX_MAX-RX_MIN
+
+extern void setup_receiver();
+extern unsigned long get_channel_value();
+extern bool pwmNew;
+extern unsigned long pwm_counter;
+extern unsigned long get_channel_value();
