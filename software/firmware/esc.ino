@@ -1,7 +1,7 @@
 /******************************************************************
  * 1. Included files (microcontroller ones then user defined ones)
 ******************************************************************/
-#include "motor.h"
+#include "modules/motor/motor.h"
 
 /******************************************************************
  * 2. Define declarations (macros then function macros)
