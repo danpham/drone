@@ -1,8 +1,25 @@
+/******************************************************************
+ * 1. Included files (microcontroller ones then user defined ones)
+******************************************************************/
+
+/******************************************************************
+ * 2. Define declarations (macros then function macros)
+******************************************************************/
+#define THROTTLE_PIN 22
+
+/******************************************************************
+ * 3. Typedef definitions (simple typedef, then enum and structs)
+******************************************************************/
+
+/******************************************************************
+ * 4. Variable definitions (static then global)
+******************************************************************/
 bool pwmNew = false;
 unsigned long pwm_counter = 0;
 
-#define THROTTLE_PIN 22
-
+/******************************************************************
+ * 5. Functions prototypes (static only)
+******************************************************************/
 
 void setup_receiver()
 {
@@ -12,7 +29,6 @@ void setup_receiver()
   pinMode(THROTTLE_PIN, INPUT);
   attachInterrupt(digitalPinToInterrupt(THROTTLE_PIN), getThrottle, CHANGE);
 }
-
 
 void getThrottle() {
   static unsigned long low_counter = 0;

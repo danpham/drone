@@ -1,18 +1,28 @@
+/******************************************************************
+ * 1. Included files (microcontroller ones then user defined ones)
+******************************************************************/
 #include <SPI.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include "modules/mpu9250/MPU6500.h"
 #include "math.h"
+#include "modules/mpu9250/MPU6500.h"
 #include "modules/receiver/receiver.h"
 
+/******************************************************************
+ * 2. Define declarations (macros then function macros)
+******************************************************************/
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 #define NCS_PIN 4
 
-/************************************************************************/
-/* Global variables and then global functions */
+/******************************************************************
+ * 3. Typedef definitions (simple typedef, then enum and structs)
+******************************************************************/
 
+/******************************************************************
+ * 4. Variable definitions (static then global)
+******************************************************************/
 int count_second = 0;
 short acc[3] = {0, 0, 0};
 short gyro[3] = {0, 0, 0};
@@ -27,10 +37,9 @@ accel_t accel_results;
 accel_t accel_results_degrees;
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
-/************************************************************************/
-/* Static variables and then static functions */
-
-/************************************************************************/
+/******************************************************************
+ * 5. Functions prototypes (static only)
+******************************************************************/
 
 byte SPI_read_register( byte reg )
 {

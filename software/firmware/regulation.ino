@@ -1,14 +1,32 @@
+/******************************************************************
+ * 1. Included files (microcontroller ones then user defined ones)
+******************************************************************/
+
+/******************************************************************
+ * 2. Define declarations (macros then function macros)
+******************************************************************/
 #define P_GAIN    16
 #define I_GAIN    0.1
 
+/******************************************************************
+ * 3. Typedef definitions (simple typedef, then enum and structs)
+******************************************************************/
+
+/******************************************************************
+ * 4. Variable definitions (static then global)
+******************************************************************/
 static dpid_t pid_x;
 static dpid_t pid_y;
 static dpid_t pid_z;
-quad_motors quadcopter;
 static dual_motors s_1_and_2;
 static dual_motors s_3_and_4;
 static dual_motors s_1_and_2y;
 static dual_motors s_3_and_4y;
+quad_motors quadcopter;
+
+/******************************************************************
+ * 5. Functions prototypes (static only)
+******************************************************************/
 
 void regulation_init() {
   pid_x = {P_GAIN, I_GAIN, 0, 0, 0.0};
