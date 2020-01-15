@@ -40,7 +40,6 @@ static void pidx(float angle_error, dpid_t * values, dual_motors * motors_A_B, d
   short int command = 0;
   static int test = 0;
 
-
   if (angle_error > 1) {
     /* Add the error to the sum */
     values->sum_error += angle_error;
@@ -54,12 +53,12 @@ static void pidx(float angle_error, dpid_t * values, dual_motors * motors_A_B, d
 
   test++;
   if (test == 40) {
-    SerialUSB.print("Command:");
+    /*SerialUSB.print("Command:");
     SerialUSB.print(command);
     SerialUSB.print(" p ");
     SerialUSB.print(angle_error);
     SerialUSB.print(" i ");
-    SerialUSB.println(values->sum_error);
+    SerialUSB.println(values->sum_error);*/
     test = 0;
   }
 
