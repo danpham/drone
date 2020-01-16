@@ -184,7 +184,7 @@ static accel_t read_accel(void) {
   float real_accelZ = 0;
   accel_t accel_results_degrees;
   accel_t accel_results;
-  
+
   accelX = read_short_value(MPU6500_RA_ACCEL_XOUT_H, MPU6500_RA_ACCEL_XOUT_L);
   accelY = read_short_value(MPU6500_RA_ACCEL_YOUT_H, MPU6500_RA_ACCEL_YOUT_L);
   accelZ = read_short_value(MPU6500_RA_ACCEL_ZOUT_H, MPU6500_RA_ACCEL_ZOUT_L);
@@ -193,7 +193,7 @@ static accel_t read_accel(void) {
   real_accelX = (float)accelX;
   real_accelY = (float)accelY;
   real_accelZ = (float)accelZ;
-  
+
   accel_results.x = atan2f(real_accelY, real_accelZ);
   accel_results.y = atan2f(real_accelX, real_accelZ);
   accel_results.z = atan2f(real_accelY, real_accelX);
@@ -202,7 +202,7 @@ static accel_t read_accel(void) {
   accel_results_degrees.x = -accel_results.x * RAD_TO_DEG;
   accel_results_degrees.y = accel_results.y * RAD_TO_DEG;
   accel_results_degrees.z = -accel_results.z * RAD_TO_DEG;
-  
+
   return accel_results_degrees;
 }
 
@@ -227,13 +227,18 @@ static void init_gyro_accel(void) {
   static int counter = 0;
   gyro_t gyro_results;
   accel_t accel_results_degrees;
-  
+
   counter++;
   gyro_results = read_gyro();
   gyro_offsets.x += gyro_results.x;
   gyro_offsets.y += gyro_results.y;
   gyro_offsets.z += gyro_results.z;
- 
+
+  accel_results_degrees = read_accel();
+  accel_offsets.x += accel_results_degrees.x;
+  accel_offsets.y += accel_results_degrees.y;
+  accel_offsets.z += accel_results_degrees.z;
+
   if (counter == 100) {
     gyro_offsets.x /= 100;
     gyro_offsets.y /= 100;
@@ -241,7 +246,7 @@ static void init_gyro_accel(void) {
     accel_offsets.x /= 100;
     accel_offsets.y /= 100;
     accel_offsets.z /= 100;
-    
+
     gyro_initialized = true;
   }
 }
@@ -253,7 +258,7 @@ void TC3_Handler() {
   static angle_errors angleErrors;
   static gyro_t gyro_sum;
   accel_t accel_results_degrees;
-  
+
   if (!gyro_initialized) {
     init_gyro_accel();
   } else {
@@ -274,57 +279,44 @@ void TC3_Handler() {
 
     accel_results_degrees = read_accel();
 
-    static float x_gyro_cos = 0;
-    x_gyro_cos = cos(gyro_sum.x* PI / 180.0);
-    static float x_gyro_sin = 0;
-    x_gyro_sin = sin(gyro_sum.x* PI / 180.0);
+    accel_results_degrees.x -= accel_offsets.x;
+    accel_results_degrees.y -= accel_offsets.y;
+    accel_results_degrees.z -= accel_offsets.z;
 
-    static float x_accel_cos = 0;  
-    x_accel_cos = cos(accel_results_degrees.x* PI / 180.0);
+    static float x_gyro_cos = 0;
+    x_gyro_cos = cos(gyro_sum.x * PI / 180.0);
+    static float x_gyro_sin = 0;
+    x_gyro_sin = sin(gyro_sum.x * PI / 180.0);
+
+    static float x_accel_cos = 0;
+    x_accel_cos = cos(accel_results_degrees.x * PI / 180.0);
     static float x_accel_sin = 0;
-    x_accel_sin = sin(accel_results_degrees.x* PI / 180.0);
+    x_accel_sin = sin(accel_results_degrees.x * PI / 180.0);
 
     static float y_gyro_cos = 0;
-    y_gyro_cos = cos(gyro_sum.y* PI / 180.0);
+    y_gyro_cos = cos(gyro_sum.y * PI / 180.0);
     static float y_gyro_sin = 0;
-    y_gyro_sin = sin(gyro_sum.y* PI / 180.0);
+    y_gyro_sin = sin(gyro_sum.y * PI / 180.0);
 
     static float y_accel_cos = 0;
-    y_accel_cos = cos(accel_results_degrees.y* PI / 180.0);
+    y_accel_cos = cos(accel_results_degrees.y * PI / 180.0);
     static float y_accel_sin = 0;
-    y_accel_sin = sin(accel_results_degrees.y* PI / 180.0);
+    y_accel_sin = sin(accel_results_degrees.y * PI / 180.0);
 
     static float filtered_cos_x = 0;
-    filtered_cos_x = 0.98*x_gyro_cos + 0.02*x_accel_cos;
+    filtered_cos_x = 0.98 * x_gyro_cos + 0.02 * x_accel_cos;
     static float filtered_sin_x = 0;
-    filtered_sin_x = 0.98*x_gyro_sin + 0.02*x_accel_sin;
-    
-    gyro_sum.x = atan2f(filtered_sin_x, filtered_cos_x)* RAD_TO_DEG;
+    filtered_sin_x = 0.98 * x_gyro_sin + 0.02 * x_accel_sin;
+
+    gyro_sum.x = atan2f(filtered_sin_x, filtered_cos_x) * RAD_TO_DEG;
 
     static float filtered_cos_y = 0;
-    filtered_cos_y = 0.98*y_gyro_cos + 0.02*y_accel_cos;
+    filtered_cos_y = 0.98 * y_gyro_cos + 0.02 * y_accel_cos;
     static float filtered_sin_y = 0;
-    filtered_sin_y = 0.98*y_gyro_sin + 0.02*y_accel_sin;
-    
-    gyro_sum.y = atan2f(filtered_sin_y, filtered_cos_y)* RAD_TO_DEG;
+    filtered_sin_y = 0.98 * y_gyro_sin + 0.02 * y_accel_sin;
 
-   /* SerialUSB.print("filtered_cos_x: ");
-    SerialUSB.println(filtered_cos_x);
-    SerialUSB.print("filtered_sin_x: ");
-    SerialUSB.println(filtered_sin_x);
+    gyro_sum.y = atan2f(filtered_sin_y, filtered_cos_y) * RAD_TO_DEG;
 
-    SerialUSB.print("y_accel_cos: ");
-    SerialUSB.println(y_accel_cos);
-    SerialUSB.print("y_accel_sin: ");
-    SerialUSB.println(y_accel_sin);
-
-    SerialUSB.print("x_accel_cos: ");
-    SerialUSB.println(x_accel_cos);
-    SerialUSB.print("x_accel_sin: ");
-    SerialUSB.println(x_accel_sin);
-
-
-    */
     SerialUSB.print("gyro_sum.x: ");
     SerialUSB.println(gyro_sum.x);
     SerialUSB.print("gyro_sum.y: ");
