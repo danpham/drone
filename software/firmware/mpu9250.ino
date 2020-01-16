@@ -200,7 +200,7 @@ static accel_t read_accel(void) {
 
   /* Convert in degrees */
   accel_results_degrees.x = -accel_results.x * RAD_TO_DEG;
-  accel_results_degrees.y = -accel_results.y * RAD_TO_DEG;
+  accel_results_degrees.y = accel_results.y * RAD_TO_DEG;
   accel_results_degrees.z = -accel_results.z * RAD_TO_DEG;
   
   return accel_results_degrees;
@@ -269,7 +269,7 @@ void TC3_Handler() {
 
     gyro_results = read_gyro();
     gyro_sum.x += gyro_results.x - gyro_offsets.x;
-    gyro_sum.y += gyro_results.y - gyro_offsets.y;
+    gyro_sum.y -= gyro_results.y - gyro_offsets.y;
     gyro_sum.z += gyro_results.z - gyro_offsets.z;
 
     accel_results_degrees = read_accel();
