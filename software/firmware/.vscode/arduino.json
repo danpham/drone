@@ -1,0 +1,5 @@
+{
+    "board": "arduino:sam:arduino_due_x",
+    "sketch": "firmware.ino",
+    "port": "COM22"
+}

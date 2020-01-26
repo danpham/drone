@@ -52,26 +52,6 @@ static void SPI_write_register(char reg, char value) {
   SPI.transfer(NCS_PIN, value);
 }
 
-static void draw(float x, float y, float z) {
-  display.clearDisplay();
-
-  display.setTextSize(2);      /* Normal 1:1 pixel scale */
-  display.setTextColor(WHITE); /* Draw white text */
-  display.setCursor(0, 0);     /* Start at top-left corner */
-  display.cp437(true);         /* Use full 256 char 'Code Page 437' font */
-
-  display.print(F("x: "));
-  display.print(x);
-  display.print(F("\n"));
-  display.print(F("y: "));
-  display.print(y);
-  display.print(F("\n"));
-  display.print(F("pwm: "));
-  display.print(z);
-  display.print(F("\n"));
-  display.display();
-}
-
 void setup_driver() {
   char id = 0;
 
@@ -322,15 +302,15 @@ void TC3_Handler() {
     SerialUSB.print("gyro_sum.y: ");
     SerialUSB.println(gyro_sum.y);
 
-    angleErrors.angle_error_x = gyro_sum.x;
-    angleErrors.angle_error_y = gyro_sum.y;
+    angleErrors.angle_error_x = -gyro_sum.x;
+    angleErrors.angle_error_y = -gyro_sum.y;
     angleErrors.angle_error_z = 0;
 
     /* Compute new values for motors */
     regulation_loop(angleErrors);
 
-    setMotorValue(MOTOR_A_PIN, quadcopter.motor_1_value + pwm_value);
-    setMotorValue(MOTOR_C_PIN, quadcopter.motor_3_value + pwm_value);
+    setMotorValue(MOTOR_A_PIN, quadcopter.motor_1_value + pwm_value*2);
+    setMotorValue(MOTOR_C_PIN, quadcopter.motor_3_value + pwm_value*2);
   }
 }
 

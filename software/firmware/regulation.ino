@@ -5,8 +5,8 @@
 /******************************************************************
  * 2. Define declarations (macros then function macros)
 ******************************************************************/
-#define P_GAIN    16
-#define I_GAIN    0.1
+#define P_GAIN    0.25
+#define I_GAIN    0.01
 
 /******************************************************************
  * 3. Typedef definitions (simple typedef, then enum and structs)
@@ -29,16 +29,15 @@ quad_motors quadcopter;
 ******************************************************************/
 
 void regulation_init() {
-  pid_x = {P_GAIN, I_GAIN, 0, 0, 0.0};
-  pid_y = {P_GAIN, I_GAIN, 0, 0, 0.0};
-  pid_z = {P_GAIN, I_GAIN, 0, 0, 0.0};
+  pid_x = {P_GAIN, I_GAIN, 0.0, 0.0, 0.0};
+  pid_y = {P_GAIN, I_GAIN, 0.0, 0.0, 0.0};
+  pid_z = {P_GAIN, I_GAIN, 0.0, 0.0, 0.0};
   quadcopter = {0, 0, 0, 0};
 }
 
-static void pidx(float angle_error, dpid_t * values, dual_motors * motors_A_B, dual_motors * motors_C_D) {
-
+static void pidx(float angle_error, dpid_t * values, dual_motors * motors_A_B, dual_motors * motors_C_D)
+{
   short int command = 0;
-  static int test = 0;
 
   if (angle_error > 1) {
     /* Add the error to the sum */
@@ -50,17 +49,6 @@ static void pidx(float angle_error, dpid_t * values, dual_motors * motors_A_B, d
   }
 
   command = (short int)(values->coeff_p * angle_error + values->coeff_i * values->sum_error);
-
-  test++;
-  if (test == 40) {
-    /*SerialUSB.print("Command:");
-    SerialUSB.print(command);
-    SerialUSB.print(" p ");
-    SerialUSB.print(angle_error);
-    SerialUSB.print(" i ");
-    SerialUSB.println(values->sum_error);*/
-    test = 0;
-  }
 
   motors_A_B->motor_A_value = command;
   motors_A_B->motor_B_value = command;

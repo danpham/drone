@@ -11,7 +11,7 @@ void setup()
 
   setup_driver();
 
-  setup_receiver();
+  Rx_setup();
   
   regulation_init();
 }

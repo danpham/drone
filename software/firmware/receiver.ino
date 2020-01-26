@@ -21,16 +21,14 @@ unsigned long pwm_counter = 0;
  * 5. Functions prototypes (static only)
 ******************************************************************/
 
-void setup_receiver()
+void Rx_setup()
 {
-  // Met la broche de signal en entrée
-  pinMode(12, INPUT);
-
   pinMode(THROTTLE_PIN, INPUT);
-  attachInterrupt(digitalPinToInterrupt(THROTTLE_PIN), getThrottle, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(THROTTLE_PIN), Rx_getThrottle, CHANGE);
 }
 
-void getThrottle() {
+void Rx_getThrottle()
+{
   static unsigned long low_counter = 0;
   static bool last_was_low = false;
   unsigned long counter = 0;

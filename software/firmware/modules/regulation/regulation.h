@@ -1,4 +1,3 @@
-
 typedef struct {
   float angle_error_x;
   float angle_error_y;
