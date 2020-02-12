@@ -1,6 +1,7 @@
 /******************************************************************
    1. Included files (microcontroller ones then user defined ones)
 ******************************************************************/
+#include <Arduino.h>
 #include <SPI.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
@@ -234,10 +235,11 @@ static void init_gyro_accel(void) {
 void TC3_Handler() {
   gyro_t gyro_results;
   TC_GetStatus(TC1, 0);
-  static unsigned long pwm_value = 40;
+  static unsigned long pwm_value = 0;
   static angle_errors angleErrors;
   static gyro_t gyro_sum;
   accel_t accel_results_degrees;
+  static short counter = 0;
 
   if (!gyro_initialized) {
     init_gyro_accel();
@@ -250,6 +252,8 @@ void TC3_Handler() {
       pwm_value = ((pwm_counter >> 5) - 31) * 3;
 
       pwmNew = false;
+      SerialUSB.print("pwm_value: ");
+      SerialUSB.println(pwm_value);
     }
 
     gyro_results = read_gyro();
@@ -297,10 +301,8 @@ void TC3_Handler() {
 
     gyro_sum.y = atan2f(filtered_sin_y, filtered_cos_y) * RAD_TO_DEG;
 
-    SerialUSB.print("gyro_sum.x: ");
-    SerialUSB.println(gyro_sum.x);
-    SerialUSB.print("gyro_sum.y: ");
-    SerialUSB.println(gyro_sum.y);
+
+
 
     angleErrors.angle_error_x = -gyro_sum.x;
     angleErrors.angle_error_y = -gyro_sum.y;
@@ -311,6 +313,17 @@ void TC3_Handler() {
 
     setMotorValue(MOTOR_A_PIN, quadcopter.motor_1_value + pwm_value*2);
     setMotorValue(MOTOR_C_PIN, quadcopter.motor_3_value + pwm_value*2);
+
+    
+    if (counter == 39){
+      /*SerialUSB.print("quadcopter.motor_1_value: ");
+      SerialUSB.println(quadcopter.motor_1_value);
+      SerialUSB.print("quadcopter.motor_3_value: ");
+      SerialUSB.println(quadcopter.motor_3_value);*/
+      counter = 0;
+    } else {
+      counter++;
+    }
   }
 }
 

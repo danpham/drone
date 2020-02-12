@@ -6,7 +6,8 @@
  * 2. Define declarations (macros then function macros)
 ******************************************************************/
 #define P_GAIN    0.25
-#define I_GAIN    0.01
+#define I_GAIN    0.1
+#define D_GAIN    0.0
 
 /******************************************************************
  * 3. Typedef definitions (simple typedef, then enum and structs)
@@ -29,9 +30,9 @@ quad_motors quadcopter;
 ******************************************************************/
 
 void regulation_init() {
-  pid_x = {P_GAIN, I_GAIN, 0.0, 0.0, 0.0};
-  pid_y = {P_GAIN, I_GAIN, 0.0, 0.0, 0.0};
-  pid_z = {P_GAIN, I_GAIN, 0.0, 0.0, 0.0};
+  pid_x = {P_GAIN, I_GAIN, D_GAIN, 0.0, 0.0};
+  pid_y = {P_GAIN, I_GAIN, D_GAIN, 0.0, 0.0};
+  pid_z = {P_GAIN, I_GAIN, D_GAIN, 0.0, 0.0};
   quadcopter = {0, 0, 0, 0};
 }
 

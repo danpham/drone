@@ -11,6 +11,5 @@
 #define RX_RANGE    RX_MAX-RX_MIN
 
 extern void Rx_setup();
-extern void Rx_getThrottle();
 extern bool pwmNew;
 extern unsigned long pwm_counter;

@@ -1,9 +1,10 @@
 /******************************************************************
  * 1. Included files (microcontroller ones then user defined ones)
 ******************************************************************/
+#include "modules/esc/esc.h"
 #include "modules/mpu9250/mpu9250.h"
 #include "modules/regulation/regulation.h"
-#include "modules/esc/esc.h"
+#include "modules/receiver/receiver.h"
 
 void setup()
 {

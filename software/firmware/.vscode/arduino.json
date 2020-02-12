@@ -1,5 +1,6 @@
 {
     "board": "arduino:sam:arduino_due_x",
+    "output": "build",
     "sketch": "firmware.ino",
-    "port": "COM22"
+    "port": "COM24"
 }
