@@ -252,8 +252,6 @@ void TC3_Handler() {
       pwm_value = ((pwm_counter >> 5) - 31) * 3;
 
       pwmNew = false;
-      SerialUSB.print("pwm_value: ");
-      SerialUSB.println(pwm_value);
     }
 
     gyro_results = read_gyro();
@@ -301,9 +299,6 @@ void TC3_Handler() {
 
     gyro_sum.y = atan2f(filtered_sin_y, filtered_cos_y) * RAD_TO_DEG;
 
-
-
-
     angleErrors.angle_error_x = -gyro_sum.x;
     angleErrors.angle_error_y = -gyro_sum.y;
     angleErrors.angle_error_z = 0;
@@ -313,17 +308,8 @@ void TC3_Handler() {
 
     setMotorValue(MOTOR_A_PIN, quadcopter.motor_1_value + pwm_value*2);
     setMotorValue(MOTOR_C_PIN, quadcopter.motor_3_value + pwm_value*2);
-
-    
-    if (counter == 39){
-      /*SerialUSB.print("quadcopter.motor_1_value: ");
-      SerialUSB.println(quadcopter.motor_1_value);
-      SerialUSB.print("quadcopter.motor_3_value: ");
-      SerialUSB.println(quadcopter.motor_3_value);*/
-      counter = 0;
-    } else {
-      counter++;
-    }
+    setMotorValue(MOTOR_B_PIN, quadcopter.motor_2_value + pwm_value*2);
+    setMotorValue(MOTOR_D_PIN, quadcopter.motor_4_value + pwm_value*2);
   }
 }
 
