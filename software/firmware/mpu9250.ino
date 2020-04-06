@@ -239,7 +239,6 @@ void TC3_Handler() {
   static angle_errors angleErrors;
   static gyro_t gyro_sum;
   accel_t accel_results_degrees;
-  static short counter = 0;
 
   if (!gyro_initialized) {
     init_gyro_accel();
