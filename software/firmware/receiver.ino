@@ -6,7 +6,6 @@
 /******************************************************************
  * 2. Define declarations (macros then function macros)
 ******************************************************************/
-#define THROTTLE_PIN 22
 
 /******************************************************************
  * 3. Typedef definitions (simple typedef, then enum and structs)
@@ -25,7 +24,6 @@ static void startTimer(Tc *tc, uint32_t channel, IRQn_Type irq);
 
 void Rx_setup()
 {
-  pinMode(THROTTLE_PIN, INPUT);
   startTimer(TC2, 0, TC6_IRQn); //TC2 channel 0, the IRQ for that channel
 }
 

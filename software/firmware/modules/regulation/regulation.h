@@ -29,3 +29,7 @@ extern quad_motors quadcopter;
 
 void regulation_init();
 void regulation_loop(angle_errors values);
+void setPidx_P(float p);
+void setPidx_I(float i);
+void setPidx_D(float d);
+void print_Pidx();

@@ -19,4 +19,38 @@ void setup()
 
 void loop()
 {
+    String serialData;
+    String command;
+    float value = 0;
+
+    if (SerialUSB.available() > 0)
+    {
+        serialData = SerialUSB.readString(); // read the incoming byte:
+
+        command = serialData[0];
+        serialData.remove(0, 1);
+        value = atof(serialData.c_str());
+        switch(command[0]){
+            case 'P':
+            case 'p':
+                SerialUSB.println("P coeff changed.");
+                setPidx_P(value);
+                break;
+            case 'I':
+            case 'i':
+                SerialUSB.println("I coeff changed.");
+                setPidx_I(value);
+                break;
+            case 'D':
+            case 'd':
+                SerialUSB.println("D coeff changed.");
+                setPidx_D(value);
+                break;
+            default:
+                SerialUSB.println("Unknown command.");
+                break;
+        }
+        print_Pidx();
+    }
+
 }
