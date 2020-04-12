@@ -9,6 +9,7 @@
 #include "math.h"
 #include "modules/mpu9250/MPU6500.h"
 #include "modules/receiver/receiver.h"
+#include "modules/console/console.h"
 
 /******************************************************************
    2. Define declarations (macros then function macros)
@@ -25,14 +26,11 @@
 /******************************************************************
    4. Variable definitions (static then global)
 ******************************************************************/
-int count_second = 0;
-unsigned short n_samples = 0;
-unsigned short fifo_count = 0;
-unsigned short fifo_err = 0;
-bool gyro_initialized = false;
 gyro_t gyro_offsets;
 accel_t accel_offsets;
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+
+static bool gyro_initialized = false;
 
 /******************************************************************
    5. Functions prototypes (static only)
@@ -91,19 +89,19 @@ void setup_driver() {
   id = SPI_read_register(MPU6500_RA_WHO_AM_I);
   switch (id) {
     case 0x68:
-      SerialUSB.print("Sensor is MPU6050");
+      SerialUSB.println("Sensor is MPU6050");
       break;
     case 0x70:
-      SerialUSB.print("Sensor is MPU6500");
+      SerialUSB.println("Sensor is MPU6500");
       break;
     case 0x71:
-      SerialUSB.print("Sensor is MPU9250");
+      SerialUSB.println("Sensor is MPU9250");
       break;
     case 0x73:
-      SerialUSB.print("Sensor is MPU9255");
+      SerialUSB.println("Sensor is MPU9255");
       break;
     case 0x74:
-      SerialUSB.print("Sensor is MPU6515");
+      SerialUSB.println("Sensor is MPU6515");
       break;
     default:
       SerialUSB.print("Unknown sensor: ");
@@ -239,13 +237,22 @@ void TC3_Handler() {
   static angle_errors angleErrors;
   static gyro_t gyro_sum;
   accel_t accel_results_degrees;
+  short int motor_value_a = 0;
+  short int motor_value_b = 0;
+  short int motor_value_c = 0;
+  short int motor_value_d = 0;
 
-  if (!gyro_initialized) {
+  if (!gyro_initialized)
+  {
     init_gyro_accel();
-  } else {
-    if (pwmNew) {
+  }
+  else
+  {
+    if (true == pwmNew)
+    {
       /* Wrong PWM appears because micros() is unstable */
-      if ((pwm_counter > RX_MAX) || (pwm_counter < RX_MIN)) {
+      if ((pwm_counter > RX_MAX) || (pwm_counter < RX_MIN))
+      {
         pwm_counter = RX_MIN;
       }
       pwm_value = ((pwm_counter >> 5) - 31) * 3;
@@ -305,12 +312,46 @@ void TC3_Handler() {
     /* Compute new values for motors */
     regulation_loop(angleErrors);
 
-    setMotorValue(MOTOR_A_PIN, quadcopter.motor_1_value + pwm_value*2);
-    setMotorValue(MOTOR_C_PIN, quadcopter.motor_3_value + pwm_value*2);
-    setMotorValue(MOTOR_B_PIN, quadcopter.motor_2_value + pwm_value*2);
-    setMotorValue(MOTOR_D_PIN, quadcopter.motor_4_value + pwm_value*2);
+    if (true == console_getDebugArmedStatus())
+    {
+        motor_value_a = quadcopter.motor_1_value + pwm_value*2;
+        motor_value_b = quadcopter.motor_2_value + pwm_value*2;
+        motor_value_c = quadcopter.motor_3_value + pwm_value*2;
+        motor_value_d = quadcopter.motor_4_value + pwm_value*2;
+    }
+    else
+    {
+        motor_value_a = 0;
+        motor_value_b = 0;
+        motor_value_c = 0;
+        motor_value_d = 0;
+    }
+    
+    setMotorValue(MOTOR_A_PIN, motor_value_a);
+    setMotorValue(MOTOR_C_PIN, motor_value_c);
+    setMotorValue(MOTOR_B_PIN, motor_value_b);
+    setMotorValue(MOTOR_D_PIN, motor_value_d);
+
+    if (console_getDebugInfoStatus())
+    {
+        SerialUSB.print("ex;\t");
+        SerialUSB.print(angleErrors.angle_error_x);
+        SerialUSB.print(";\tey;\t");
+        SerialUSB.print(angleErrors.angle_error_y);
+        SerialUSB.print(";\tpwm;\t");
+        SerialUSB.print(pwm_value);
+        SerialUSB.print(";\ta;\t");
+        SerialUSB.print(motor_value_a);
+        SerialUSB.print(";\tb;\t");
+        SerialUSB.print(motor_value_b);
+        SerialUSB.print(";\tc;\t");
+        SerialUSB.print(motor_value_c);
+        SerialUSB.print(";\td;\t");
+        SerialUSB.println(motor_value_d);
+    }
   }
 }
+
 
 static void startTimer(Tc *tc, uint32_t channel, IRQn_Type irq, uint32_t frequency) {
   /* Enable or disable write protect of PMC registers */
