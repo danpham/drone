@@ -57,13 +57,18 @@ void setup_esc()
   @param value: min value MOTOR_MIN_VALUE, max value MOTOR_MAX_VALUE
   @return void
 */
-void setMotorValue(int motor, short value)
+void setMotorValue(const int motor, const short value)
 {
-  if (value < MOTOR_MIN_VALUE){
-    analogWrite(motor, MOTOR_MIN_THROTTLE);
-  } else if (value > MOTOR_MAX_VALUE){
-    analogWrite(motor, MOTOR_MAX_THROTTLE);
-  } else {
-    analogWrite(motor, MOTOR_MIN_THROTTLE + value);
+  if (value < MOTOR_MIN_VALUE)
+  {
+      analogWrite(motor, MOTOR_MIN_THROTTLE);
+  } 
+  else if (value > MOTOR_MAX_VALUE)
+  {
+      analogWrite(motor, MOTOR_MAX_THROTTLE);
+  }
+  else
+  {
+      analogWrite(motor, MOTOR_MIN_THROTTLE + value);
   }
 }
