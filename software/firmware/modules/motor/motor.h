@@ -9,9 +9,31 @@
 #define MOTOR_MAX_VALUE     (MOTOR_MAX_THROTTLE - MOTOR_MIN_THROTTLE)
 
 typedef enum {
+    MOTOR_A,
+    MOTOR_B,
+    MOTOR_C,
+    MOTOR_D,
+    MOTOR_MAX
+} MotorName;
+
+typedef enum {
     MOTOR_A_PIN = 6,
     MOTOR_B_PIN = 7,
     MOTOR_C_PIN = 8,
     MOTOR_D_PIN = 9,
     MOTOR_PIN_MAX
 } MotorPin;
+
+typedef struct {
+    U8 motor_pin;
+    U8 motor_offset;
+    float motor_gain;
+} Motor;
+
+extern void setup_motor(void);
+extern U8 getMotorOffset(const U8 motorId);
+extern void setMotorOffset(const U8 motorId, const U8 offset);
+extern float getMotorGain(const U8 motorId);
+extern void setMotorGain(const U8 motorId, const float value);
+extern void printMotorData(void);
+void setMotorValue(const short motorId, const short value);

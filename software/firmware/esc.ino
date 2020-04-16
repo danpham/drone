@@ -1,7 +1,7 @@
 /******************************************************************
  * 1. Included files (microcontroller ones then user defined ones)
 ******************************************************************/
-#include "modules/motor/motor.h"
+
 
 /******************************************************************
  * 2. Define declarations (macros then function macros)
@@ -49,26 +49,4 @@ void setup_esc()
   delay(5000);
 
   digitalWrite(LED_BUILTIN, LOW);
-}
-
-/**
-  @desc Set motor and check value is in range
-  @param motor
-  @param value: min value MOTOR_MIN_VALUE, max value MOTOR_MAX_VALUE
-  @return void
-*/
-void setMotorValue(const int motor, const short value)
-{
-  if (value < MOTOR_MIN_VALUE)
-  {
-      analogWrite(motor, MOTOR_MIN_THROTTLE);
-  } 
-  else if (value > MOTOR_MAX_VALUE)
-  {
-      analogWrite(motor, MOTOR_MAX_THROTTLE);
-  }
-  else
-  {
-      analogWrite(motor, MOTOR_MIN_THROTTLE + value);
-  }
 }

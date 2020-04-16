@@ -2,6 +2,7 @@
    1. Included files (microcontroller ones then user defined ones)
 ******************************************************************/
 #include <Arduino.h>
+#include "modules/motor/motor.h"
 
 /******************************************************************
    2. Define declarations (macros then function macros)
@@ -28,7 +29,6 @@ bool console_getDebugInfoStatus(){
     return debugInfoStatus;
 }
 
-
 /*
  * Get motor status
  */
@@ -36,12 +36,12 @@ bool console_getDebugArmedStatus(){
     return debugArmedStatus;
 }
 
-
 void console()
 {
     String serialData;
     String command;
     float value = 0;
+    U8 offset = 0;
 
     if (SerialUSB.available() > 0)
     {
@@ -93,10 +93,57 @@ void console()
                     debugInfoStatus = false;
                 }
                 break;
+            case 'G':
+            case 'g':
+                SerialUSB.println("Set Motor A gain");
+                setMotorGain(MOTOR_A, value);
+                break;
+            case 'H':
+            case 'h':
+                SerialUSB.println("Set Motor B gain");
+                setMotorGain(MOTOR_B, value);
+                break;
+            case 'J':
+            case 'j':
+                SerialUSB.println("Set Motor C gain");
+                setMotorGain(MOTOR_C, value);
+                break;
+            case 'K':
+            case 'k':
+                SerialUSB.println("Set Motor D gain");
+                setMotorGain(MOTOR_D, value);
+                break;
+
+            case 'W':
+            case 'w':
+                offset = atoi(serialData.c_str());
+                SerialUSB.println("Set Motor A offset");
+                setMotorOffset(MOTOR_A, (U8)offset);
+                break;
+            case 'X':
+            case 'x':
+                offset = atoi(serialData.c_str());
+                SerialUSB.println("Set Motor B offset");
+                setMotorOffset(MOTOR_B, (U8)offset);
+                break;
+            case 'C':
+            case 'c':
+                offset = atoi(serialData.c_str());
+                SerialUSB.println("Set Motor C offset");
+                setMotorOffset(MOTOR_C, (U8)offset);
+                break;
+            case 'V':
+            case 'v':
+                offset = atoi(serialData.c_str());
+                SerialUSB.println("Set Motor D offset");
+                setMotorOffset(MOTOR_D, (U8)offset);
+                break;
+
             default:
                 SerialUSB.println("Unknown command.");
                 break;
         }
         print_Pidx();
+        printMotorData();
     }
 }

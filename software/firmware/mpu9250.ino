@@ -312,26 +312,11 @@ void TC3_Handler() {
     /* Compute new values for motors */
     regulation_loop(angleErrors);
 
-    if (true == console_getDebugArmedStatus())
-    {
-        motor_value_a = quadcopter.motor_1_value + pwm_value*2;
-        motor_value_b = quadcopter.motor_2_value + pwm_value*2;
-        motor_value_c = quadcopter.motor_3_value + pwm_value*2;
-        motor_value_d = quadcopter.motor_4_value + pwm_value*2;
-    }
-    else
-    {
-        motor_value_a = 0;
-        motor_value_b = 0;
-        motor_value_c = 0;
-        motor_value_d = 0;
-    }
-    
-    setMotorValue(MOTOR_A_PIN, motor_value_a);
-    setMotorValue(MOTOR_C_PIN, motor_value_c);
-    setMotorValue(MOTOR_B_PIN, motor_value_b);
-    setMotorValue(MOTOR_D_PIN, motor_value_d);
-
+    motor_value_a = quadcopter.motor_1_value + pwm_value * 2;
+    motor_value_b = quadcopter.motor_2_value + pwm_value * 2;
+    motor_value_c = quadcopter.motor_3_value + pwm_value * 2;
+    motor_value_d = quadcopter.motor_4_value + pwm_value * 2;
+          
     if (console_getDebugInfoStatus())
     {
         SerialUSB.print("ex;\t");
@@ -349,6 +334,18 @@ void TC3_Handler() {
         SerialUSB.print(";\td;\t");
         SerialUSB.println(motor_value_d);
     }
+    if (false == console_getDebugArmedStatus())
+    {
+        motor_value_a = 0;
+        motor_value_b = 0;
+        motor_value_c = 0;
+        motor_value_d = 0;
+    }
+    
+    setMotorValue(MOTOR_A, motor_value_a);
+    setMotorValue(MOTOR_C, motor_value_c);
+    setMotorValue(MOTOR_B, motor_value_b);
+    setMotorValue(MOTOR_D, motor_value_d);   
   }
 }
 

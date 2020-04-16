@@ -5,7 +5,7 @@
 /******************************************************************
  * 2. Define declarations (macros then function macros)
 ******************************************************************/
-#define P_DEFAULT_GAIN    0.25
+#define P_DEFAULT_GAIN    2.0
 #define I_DEFAULT_GAIN    0.0
 #define D_DEFAULT_GAIN    0.0
 
@@ -18,19 +18,13 @@
 ******************************************************************/
 static dpid_t pid_x;
 static dpid_t pid_y;
-static dpid_t pid_z;
-static dual_motors s_1_and_2;
-static dual_motors s_3_and_4;
-static dual_motors s_1_and_2y;
-static dual_motors s_3_and_4y;
+//static dpid_t pid_z;
 quad_motors quadcopter;
 
 /******************************************************************
  * 5. Functions prototypes (static only)
 ******************************************************************/
-static void pidx(float angle_error, dpid_t * values, dual_motors * motors_A_B, dual_motors * motors_C_D);
-static void pidy(float angle_error, dpid_t * values, dual_motors * motors_A_B, dual_motors * motors_C_D);
-
+static void pid(float angle_error_x, float angle_error_y, dpid_t * values_x, dpid_t * values_y, quad_motors * motors);
 
 void setPidx_P(float p) {
   pid_x.coeff_p = p;
@@ -53,75 +47,79 @@ void setPidx_D(float d) {
 void regulation_init() {
   pid_x = {P_DEFAULT_GAIN, I_DEFAULT_GAIN, D_DEFAULT_GAIN, 0.0, 0.0};
   pid_y = {P_DEFAULT_GAIN, I_DEFAULT_GAIN, D_DEFAULT_GAIN, 0.0, 0.0};
-  pid_z = {P_DEFAULT_GAIN, I_DEFAULT_GAIN, D_DEFAULT_GAIN, 0.0, 0.0};
+  //pid_z = {P_DEFAULT_GAIN, I_DEFAULT_GAIN, D_DEFAULT_GAIN, 0.0, 0.0};
   quadcopter = {0, 0, 0, 0};
 }
 
 
 void print_Pidx() {
-    SerialUSB.println("Coeff P: ");
-    SerialUSB.println(pid_x.coeff_p);
-    SerialUSB.println("Coeff I: ");
-    SerialUSB.println(pid_x.coeff_i);
-    SerialUSB.println("Coeff D: ");
+    SerialUSB.print("Coeff P\t");
+    SerialUSB.print(pid_x.coeff_p);
+    SerialUSB.print("\tCoeff I\t");
+    SerialUSB.print(pid_x.coeff_i);
+    SerialUSB.print("\tCoeff D\t");
     SerialUSB.println(pid_x.coeff_d);
 }
 
 
 void regulation_loop(angle_errors values /* consigne */) {
-  /* X regulation */
-  pidx(values.angle_error_x, &pid_x, &s_1_and_2, &s_3_and_4);
-  /* Y regulation */
-  pidy(values.angle_error_y, &pid_y, &s_1_and_2y, &s_3_and_4y);
-
-  quadcopter.motor_1_value = (127 * (s_1_and_2.motor_A_value)) / 512; // + s_1_and_3_for_lacet.motor_A_value;
-  quadcopter.motor_2_value = (127 * (s_1_and_2.motor_B_value)) / 512;
-  quadcopter.motor_3_value = (127 * (s_3_and_4.motor_A_value)) / 512; // + s_1_and_3_for_lacet.motor_B_value;
-  quadcopter.motor_4_value = (127 * (s_3_and_4.motor_B_value)) / 512;
+  pid(values.angle_error_x, values.angle_error_y, &pid_x, &pid_y, &quadcopter);
 }
 
 
-static void pidx(float angle_error, dpid_t * values, dual_motors * motors_A_B, dual_motors * motors_C_D)
+static void pid(float angle_error_x, float angle_error_y, dpid_t * values_x, dpid_t * values_y, quad_motors * motors)
 {
-  short int command = 0;
-
-  if (angle_error > 1)
-  {
-    /* Add the error to the sum */
-    values->sum_error += angle_error;
-  }
-  /* Check sum error does not grow */
-  if ((values->sum_error > 100) || (values->sum_error < -100))
-  {
-    values->sum_error = 0;
-  }
-
-  command = (short int)(values->coeff_p * angle_error + values->coeff_i * values->sum_error);
-
-  motors_A_B->motor_A_value = command;
-  motors_A_B->motor_B_value = command;
-  motors_C_D->motor_A_value = -1 * command;
-  motors_C_D->motor_B_value = -1 * command;
-}
-
-static void pidy(float angle_error, dpid_t * values, dual_motors * motors_A_B, dual_motors * motors_C_D) {
-
-  short int command = 0;
+  short int command_x = 0;
+  short int command_y = 0;
+  static float last_angle_error_x = 0;
+  static float last_angle_error_y = 0;
 
   /* Add the error to the sum */
-  values->sum_error += angle_error;
+  values_x->sum_error += angle_error_x;
+  values_y->sum_error += angle_error_y;
 
   /* Check sum error does not grow */
-  if ((values->sum_error > 100) || (values->sum_error < -100))
+  if ((values_x->sum_error > 100) || (values_x->sum_error < -100))
   {
-    values->sum_error = 0;
+    values_x->sum_error = 0;
   }
 
-  command = (short int)(values->coeff_p * angle_error + values->coeff_i * values->sum_error);
+  /* Check sum error does not grow */
+  if ((values_y->sum_error > 100) || (values_y->sum_error < -100))
+  {
+    values_y->sum_error = 0;
+  }
 
-  motors_A_B->motor_A_value = -1 * command;
-  motors_A_B->motor_B_value = command;
-  motors_C_D->motor_A_value = command;
-  motors_C_D->motor_B_value = -1 * command;
+  command_x = (short int)(values_x->coeff_p * angle_error_x + values_x->coeff_i * values_x->sum_error + values_x->coeff_d * (angle_error_x - last_angle_error_x));
+  command_y = (short int)(values_y->coeff_p * angle_error_y + values_y->coeff_i * values_y->sum_error + values_y->coeff_d * (angle_error_y - last_angle_error_y));
+
+  last_angle_error_x = angle_error_x;
+  last_angle_error_y = angle_error_y;
+
+  if (command_x > 0)
+  {
+      motors->motor_1_value = command_x;
+      motors->motor_2_value = command_x;
+      motors->motor_3_value = 0;
+      motors->motor_4_value = 0;
+  }
+  else
+  {
+      motors->motor_1_value = 0;
+      motors->motor_2_value = 0;
+      motors->motor_3_value = -1*command_x;
+      motors->motor_4_value = -1*command_x;
+  }
+
+  if (command_y > 0)
+  {
+      motors->motor_2_value += command_y;
+      motors->motor_3_value += command_y;
+  }
+  else
+  {
+      motors->motor_1_value += -1*command_y;
+      motors->motor_4_value += -1*command_y;
+  }
 }
 
