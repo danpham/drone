@@ -11,6 +11,8 @@
 
 void setup()
 {
+  setup_screen();
+
   setup_esc();
 
   setup_motor();

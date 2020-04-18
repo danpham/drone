@@ -14,8 +14,6 @@
 /******************************************************************
    2. Define declarations (macros then function macros)
 ******************************************************************/
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
 #define NCS_PIN 4
 #define TIMER_FREQ 250
 
@@ -28,7 +26,6 @@
 ******************************************************************/
 gyro_t gyro_offsets;
 accel_t accel_offsets;
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 static bool gyro_initialized = false;
 
@@ -36,9 +33,9 @@ static bool gyro_initialized = false;
    5. Functions prototypes (static only)
 ******************************************************************/
 
-static char SPI_read_register(char reg) {
+static U8 SPI_read_register(U8 reg) {
   /* reg | 0x80 to denote read */
-  char read_value = 0;
+  U8 read_value = 0;
   SPI.transfer(NCS_PIN, reg | 0x80, SPI_CONTINUE);
   /* write 8-bits zero */
   read_value = SPI.transfer(NCS_PIN, 0x00);
@@ -46,19 +43,13 @@ static char SPI_read_register(char reg) {
   return read_value;
 }
 
-static void SPI_write_register(char reg, char value) {
+static void SPI_write_register(U8 reg, U8 value) {
   SPI.transfer(NCS_PIN, reg, SPI_CONTINUE);
   SPI.transfer(NCS_PIN, value);
 }
 
 void setup_driver() {
-  char id = 0;
-
-  /* SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
-    Address 0x3C for 128x64 */
-  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
-  display.clearDisplay();
-  display.display();
+  U8 id = 0;
 
   SerialUSB.begin(115200);
   SPI.begin(NCS_PIN);
@@ -66,6 +57,7 @@ void setup_driver() {
   SPI.setBitOrder(NCS_PIN, MSBFIRST);
   /* 1MHz */
   SPI.setClockDivider(NCS_PIN, 84);
+
   SerialUSB.println("MPU driver is starting");
 
   /* reset the device */
@@ -142,10 +134,10 @@ void setup_driver() {
   startTimer(TC1, 0, TC3_IRQn, TIMER_FREQ);
 }
 
-static short read_short_value(char register_high, char register_low) {
+static short read_short_value(U8 register_high, U8 register_low) {
   short value = 0;
-  char high = 0;
-  char low = 0;
+  U8 high = 0;
+  U8 low = 0;
 
   high = SPI_read_register(register_high);
   low = SPI_read_register(register_low);
@@ -207,6 +199,11 @@ static void init_gyro_accel(void) {
   gyro_t gyro_results;
   accel_t accel_results_degrees;
 
+  if (0 == counter)
+  {
+      draw("Gyro offs");
+  }
+
   counter++;
   gyro_results = read_gyro();
   gyro_offsets.x += gyro_results.x;
@@ -218,7 +215,7 @@ static void init_gyro_accel(void) {
   accel_offsets.y += accel_results_degrees.y;
   accel_offsets.z += accel_results_degrees.z;
 
-  if (counter == 100) {
+  if (100 == counter) {
     gyro_offsets.x /= 100;
     gyro_offsets.y /= 100;
     gyro_offsets.z /= 100;
@@ -227,6 +224,7 @@ static void init_gyro_accel(void) {
     accel_offsets.z /= 100;
 
     gyro_initialized = true;
+    draw("Drone\nready!");
   }
 }
 

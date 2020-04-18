@@ -39,6 +39,7 @@ void setup_esc()
   analogWrite(MOTOR_C_PIN, MOTOR_HI_THROTTLE);
   analogWrite(MOTOR_D_PIN, MOTOR_HI_THROTTLE);
 
+  draw("Esc init.\nHi throt.");
   delay(5000);
 
   analogWrite(MOTOR_A_PIN, MOTOR_LO_THROTTLE);
@@ -46,7 +47,9 @@ void setup_esc()
   analogWrite(MOTOR_C_PIN, MOTOR_LO_THROTTLE);
   analogWrite(MOTOR_D_PIN, MOTOR_LO_THROTTLE);
 
+  draw("Esc init.\nLow throt.");
   delay(5000);
 
+  draw("Esc init.\nOK");
   digitalWrite(LED_BUILTIN, LOW);
 }
