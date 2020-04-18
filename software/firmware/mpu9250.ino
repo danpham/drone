@@ -15,7 +15,7 @@
    2. Define declarations (macros then function macros)
 ******************************************************************/
 #define NCS_PIN 4
-#define TIMER_FREQ 250
+#define TIMER_FREQ 150
 
 /******************************************************************
    3. Typedef definitions (simple typedef, then enum and structs)
@@ -24,9 +24,7 @@
 /******************************************************************
    4. Variable definitions (static then global)
 ******************************************************************/
-gyro_t gyro_offsets;
-accel_t accel_offsets;
-
+static gyro_t gyro_offsets;
 static bool gyro_initialized = false;
 
 /******************************************************************
@@ -48,10 +46,15 @@ static void SPI_write_register(U8 reg, U8 value) {
   SPI.transfer(NCS_PIN, value);
 }
 
-void setup_driver() {
+void setup_driver()
+{
   U8 id = 0;
 
   SerialUSB.begin(115200);
+  /* Wait for USB to be available */
+  draw("Wait\nSerial");
+  while(!SerialUSB);
+
   SPI.begin(NCS_PIN);
   SPI.setDataMode(NCS_PIN, SPI_MODE0);
   SPI.setBitOrder(NCS_PIN, MSBFIRST);
@@ -146,38 +149,27 @@ static short read_short_value(U8 register_high, U8 register_low) {
   return value;
 }
 
-static accel_t read_accel(void) {
-  short accelX = 0;
-  short accelY = 0;
-  short accelZ = 0;
-  float real_accelX = 0;
-  float real_accelY = 0;
-  float real_accelZ = 0;
-  accel_t accel_results_degrees;
+/**
+  @desc Read acceleration from sensor
+  @return accel_t: return acceleration (no unit)
+*/
+static accel_t read_accel(void)
+{
   accel_t accel_results;
 
-  accelX = read_short_value(MPU6500_RA_ACCEL_XOUT_H, MPU6500_RA_ACCEL_XOUT_L);
-  accelY = read_short_value(MPU6500_RA_ACCEL_YOUT_H, MPU6500_RA_ACCEL_YOUT_L);
-  accelZ = read_short_value(MPU6500_RA_ACCEL_ZOUT_H, MPU6500_RA_ACCEL_ZOUT_L);
+  accel_results.x = (float)read_short_value(MPU6500_RA_ACCEL_XOUT_H, MPU6500_RA_ACCEL_XOUT_L);
+  accel_results.y = (float)read_short_value(MPU6500_RA_ACCEL_YOUT_H, MPU6500_RA_ACCEL_YOUT_L);
+  accel_results.z = (float)read_short_value(MPU6500_RA_ACCEL_ZOUT_H, MPU6500_RA_ACCEL_ZOUT_L);
 
-  /* -1 to reverse axis from drawing xyz in PCB */
-  real_accelX = (float)accelX;
-  real_accelY = (float)accelY;
-  real_accelZ = (float)accelZ;
-
-  accel_results.x = atan2f(real_accelY, real_accelZ);
-  accel_results.y = atan2f(real_accelX, real_accelZ);
-  accel_results.z = atan2f(real_accelY, real_accelX);
-
-  /* Convert in degrees */
-  accel_results_degrees.x = -accel_results.x * RAD_TO_DEG;
-  accel_results_degrees.y = accel_results.y * RAD_TO_DEG;
-  accel_results_degrees.z = -accel_results.z * RAD_TO_DEG;
-
-  return accel_results_degrees;
+  return accel_results;
 }
 
-static gyro_t read_gyro(void) {
+/**
+  @desc Read acceleration from sensor
+  @return gyro_t: return the angle difference on 3 axis in degrees
+*/
+static gyro_t read_gyro(void)
+{
   gyro_t gyro_results;
   short gyroX = 0;
   short gyroY = 0;
@@ -194,38 +186,35 @@ static gyro_t read_gyro(void) {
   return gyro_results;
 }
 
-static void init_gyro_accel(void) {
+/**
+  @desc Compute the offset mean of gyroscopes and accelerometers
+  @return void
+*/
+static void init_gyro(void)
+{
   static int counter = 0;
   gyro_t gyro_results;
-  accel_t accel_results_degrees;
 
   if (0 == counter)
   {
-      draw("Gyro offs");
+    draw("Gyro offs");      
   }
 
-  counter++;
   gyro_results = read_gyro();
   gyro_offsets.x += gyro_results.x;
   gyro_offsets.y += gyro_results.y;
   gyro_offsets.z += gyro_results.z;
 
-  accel_results_degrees = read_accel();
-  accel_offsets.x += accel_results_degrees.x;
-  accel_offsets.y += accel_results_degrees.y;
-  accel_offsets.z += accel_results_degrees.z;
-
-  if (100 == counter) {
+  if (99 == counter)
+  {
     gyro_offsets.x /= 100;
     gyro_offsets.y /= 100;
     gyro_offsets.z /= 100;
-    accel_offsets.x /= 100;
-    accel_offsets.y /= 100;
-    accel_offsets.z /= 100;
 
     gyro_initialized = true;
     draw("Drone\nready!");
   }
+  counter++;
 }
 
 void TC3_Handler() {
@@ -233,8 +222,9 @@ void TC3_Handler() {
   TC_GetStatus(TC1, 0);
   static unsigned long pwm_value = 0;
   static angle_errors angleErrors;
+  static angle_errors accelAngles;
   static gyro_t gyro_sum;
-  accel_t accel_results_degrees;
+  accel_t accel_results;
   short int motor_value_a = 0;
   short int motor_value_b = 0;
   short int motor_value_c = 0;
@@ -242,7 +232,7 @@ void TC3_Handler() {
 
   if (!gyro_initialized)
   {
-    init_gyro_accel();
+    init_gyro();
   }
   else
   {
@@ -261,51 +251,18 @@ void TC3_Handler() {
     gyro_results = read_gyro();
     gyro_sum.x += gyro_results.x - gyro_offsets.x;
     gyro_sum.y -= gyro_results.y - gyro_offsets.y;
-    gyro_sum.z += gyro_results.z - gyro_offsets.z;
 
-    accel_results_degrees = read_accel();
-
-    accel_results_degrees.x -= accel_offsets.x;
-    accel_results_degrees.y -= accel_offsets.y;
-    accel_results_degrees.z -= accel_offsets.z;
-
-    static float x_gyro_cos = 0;
-    x_gyro_cos = cos(gyro_sum.x * PI / 180.0);
-    static float x_gyro_sin = 0;
-    x_gyro_sin = sin(gyro_sum.x * PI / 180.0);
-
-    static float x_accel_cos = 0;
-    x_accel_cos = cos(accel_results_degrees.x * PI / 180.0);
-    static float x_accel_sin = 0;
-    x_accel_sin = sin(accel_results_degrees.x * PI / 180.0);
-
-    static float y_gyro_cos = 0;
-    y_gyro_cos = cos(gyro_sum.y * PI / 180.0);
-    static float y_gyro_sin = 0;
-    y_gyro_sin = sin(gyro_sum.y * PI / 180.0);
-
-    static float y_accel_cos = 0;
-    y_accel_cos = cos(accel_results_degrees.y * PI / 180.0);
-    static float y_accel_sin = 0;
-    y_accel_sin = sin(accel_results_degrees.y * PI / 180.0);
-
-    static float filtered_cos_x = 0;
-    filtered_cos_x = 0.98 * x_gyro_cos + 0.02 * x_accel_cos;
-    static float filtered_sin_x = 0;
-    filtered_sin_x = 0.98 * x_gyro_sin + 0.02 * x_accel_sin;
-
-    gyro_sum.x = atan2f(filtered_sin_x, filtered_cos_x) * RAD_TO_DEG;
-
-    static float filtered_cos_y = 0;
-    filtered_cos_y = 0.98 * y_gyro_cos + 0.02 * y_accel_cos;
-    static float filtered_sin_y = 0;
-    filtered_sin_y = 0.98 * y_gyro_sin + 0.02 * y_accel_sin;
-
-    gyro_sum.y = atan2f(filtered_sin_y, filtered_cos_y) * RAD_TO_DEG;
-
-    angleErrors.angle_error_x = -gyro_sum.x;
-    angleErrors.angle_error_y = -gyro_sum.y;
-    angleErrors.angle_error_z = 0;
+    accel_results = read_accel();
+    accel_results.x /= 16384;
+    accel_results.y /= 16384;
+    accel_results.z /= 16384;
+    
+    accelAngles.x = atan(accel_results.y / (sqrt(accel_results.x * accel_results.x + accel_results.z * accel_results.z))) * RAD_TO_DEG;
+    accelAngles.y = atan(accel_results.x / (sqrt(accel_results.y * accel_results.y + accel_results.z * accel_results.z))) * RAD_TO_DEG;
+  
+    angleErrors.x = -1*(0.98 * gyro_sum.x + 0.02 * accelAngles.x);
+    angleErrors.y = -1*(0.98 * gyro_sum.y + 0.02 * accelAngles.y);
+    angleErrors.z = 0;
 
     /* Compute new values for motors */
     regulation_loop(angleErrors);
@@ -318,19 +275,13 @@ void TC3_Handler() {
     if (console_getDebugInfoStatus())
     {
         SerialUSB.print("ex;\t");
-        SerialUSB.print(angleErrors.angle_error_x);
+        SerialUSB.print(angleErrors.x);
         SerialUSB.print(";\tey;\t");
-        SerialUSB.print(angleErrors.angle_error_y);
-        SerialUSB.print(";\tpwm;\t");
-        SerialUSB.print(pwm_value);
-        SerialUSB.print(";\ta;\t");
-        SerialUSB.print(motor_value_a);
-        SerialUSB.print(";\tb;\t");
-        SerialUSB.print(motor_value_b);
-        SerialUSB.print(";\tc;\t");
-        SerialUSB.print(motor_value_c);
-        SerialUSB.print(";\td;\t");
-        SerialUSB.println(motor_value_d);
+        SerialUSB.print(angleErrors.y);
+        SerialUSB.print(";\teax;\t");
+        SerialUSB.print(gyro_sum.x);
+        SerialUSB.print(";\teay;\t");
+        SerialUSB.println(gyro_sum.y);
     }
     if (false == console_getDebugArmedStatus())
     {
@@ -343,7 +294,7 @@ void TC3_Handler() {
     setMotorValue(MOTOR_A, motor_value_a);
     setMotorValue(MOTOR_C, motor_value_c);
     setMotorValue(MOTOR_B, motor_value_b);
-    setMotorValue(MOTOR_D, motor_value_d);   
+    setMotorValue(MOTOR_D, motor_value_d);
   }
 }
 

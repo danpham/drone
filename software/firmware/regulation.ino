@@ -63,7 +63,7 @@ void print_Pidx() {
 
 
 void regulation_loop(angle_errors values /* consigne */) {
-  pid(values.angle_error_x, values.angle_error_y, &pid_x, &pid_y, &quadcopter);
+  pid(values.x, values.y, &pid_x, &pid_y, &quadcopter);
 }
 
 

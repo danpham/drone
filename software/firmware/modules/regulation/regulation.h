@@ -1,7 +1,7 @@
 typedef struct {
-  float angle_error_x;
-  float angle_error_y;
-  float angle_error_z;
+  float x;
+  float y;
+  float z;
 } angle_errors;
 
 typedef struct {

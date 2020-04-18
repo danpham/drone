@@ -113,7 +113,6 @@ void console()
                 SerialUSB.println("Set Motor D gain");
                 setMotorGain(MOTOR_D, value);
                 break;
-
             case 'W':
             case 'w':
                 offset = atoi(serialData.c_str());
@@ -138,7 +137,6 @@ void console()
                 SerialUSB.println("Set Motor D offset");
                 setMotorOffset(MOTOR_D, (U8)offset);
                 break;
-
             default:
                 SerialUSB.println("Unknown command.");
                 break;
