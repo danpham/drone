@@ -25,11 +25,22 @@
    4. Variable definitions (static then global)
 ******************************************************************/
 static gyro_t gyro_offsets;
-static bool gyro_initialized = false;
+
+bool gyro_initialized = false;
+U16 counter = 0;
+gyro_t gyro_sum;
 
 /******************************************************************
    5. Functions prototypes (static only)
 ******************************************************************/
+
+void reinit_gyro()
+{
+  gyro_initialized = false;
+  counter = 0;
+  gyro_sum.x = 0;
+  gyro_sum.y = 0;
+}
 
 static U8 SPI_read_register(U8 reg) {
   /* reg | 0x80 to denote read */
@@ -192,7 +203,6 @@ static gyro_t read_gyro(void)
 */
 static void init_gyro(void)
 {
-  static int counter = 0;
   gyro_t gyro_results;
 
   if (0 == counter)
@@ -205,13 +215,19 @@ static void init_gyro(void)
   gyro_offsets.y += gyro_results.y;
   gyro_offsets.z += gyro_results.z;
 
-  if (99 == counter)
+  if (999 == counter)
   {
-    gyro_offsets.x /= 100;
-    gyro_offsets.y /= 100;
-    gyro_offsets.z /= 100;
+    gyro_offsets.x /= 1000;
+    gyro_offsets.y /= 1000;
+    gyro_offsets.z /= 1000;
 
     gyro_initialized = true;
+    SerialUSB.println("gyro_offsets.x");
+    SerialUSB.println(gyro_offsets.x,5);
+    SerialUSB.println("gyro_offsets.y");
+    SerialUSB.println(gyro_offsets.y,5);
+    SerialUSB.println("gyro_offsets.z");
+    SerialUSB.println(gyro_offsets.z,5);
     draw("Drone\nready!");
   }
   counter++;
@@ -223,7 +239,7 @@ void TC3_Handler() {
   static unsigned long pwm_value = 0;
   static angle_errors angleErrors;
   static angle_errors accelAngles;
-  static gyro_t gyro_sum;
+
   accel_t accel_results;
   short int motor_value_a = 0;
   short int motor_value_b = 0;
@@ -249,20 +265,57 @@ void TC3_Handler() {
     }
 
     gyro_results = read_gyro();
-    gyro_sum.x += gyro_results.x - gyro_offsets.x;
-    gyro_sum.y -= gyro_results.y - gyro_offsets.y;
+    gyro_sum.x += (gyro_results.x - gyro_offsets.x);
+    gyro_sum.y += (gyro_results.y - gyro_offsets.y);
 
     accel_results = read_accel();
     accel_results.x /= 16384;
     accel_results.y /= 16384;
     accel_results.z /= 16384;
     
-    accelAngles.x = atan(accel_results.y / (sqrt(accel_results.x * accel_results.x + accel_results.z * accel_results.z))) * RAD_TO_DEG;
-    accelAngles.y = atan(accel_results.x / (sqrt(accel_results.y * accel_results.y + accel_results.z * accel_results.z))) * RAD_TO_DEG;
+    float module_x = sqrt(accel_results.x * accel_results.x + accel_results.z * accel_results.z);
+
+    if (module_x != 0.0)
+    {
+        accelAngles.x = atan(accel_results.y / module_x) * RAD_TO_DEG;
+    }
+    else
+    {
+        if (accel_results.x > 0)
+        {
+            accelAngles.x = 90.0;  
+        }
+        else
+        {
+            accelAngles.x = -90.0;  
+        }
+        
+    }
+    
+    float module_y = sqrt(accel_results.y * accel_results.y + accel_results.z * accel_results.z);
+
+    if (module_y != 0.0)
+    {
+        accelAngles.y = atan(accel_results.x / module_y) * RAD_TO_DEG;
+    }
+    else
+    {
+        if (accel_results.y > 0)
+        {
+            accelAngles.y = 90.0;  
+        }
+        else
+        {
+            accelAngles.y = -90.0;  
+        }
+        
+    }
   
-    angleErrors.x = -1*(0.98 * gyro_sum.x + 0.02 * accelAngles.x);
-    angleErrors.y = -1*(0.98 * gyro_sum.y + 0.02 * accelAngles.y);
-    angleErrors.z = 0;
+    gyro_sum.x = 0.98 * gyro_sum.x + 0.02 * accelAngles.x;
+    gyro_sum.y = 0.98 * gyro_sum.y + 0.02 * accelAngles.y;
+
+    angleErrors.x = gyro_sum.x;
+    angleErrors.y = gyro_sum.y;
 
     /* Compute new values for motors */
     regulation_loop(angleErrors);
@@ -273,28 +326,25 @@ void TC3_Handler() {
     motor_value_d = quadcopter.motor_4_value + pwm_value * 2;
           
     if (console_getDebugInfoStatus())
-    {
-        SerialUSB.print("ex;\t");
+    {        
+        SerialUSB.print("x;\t");
         SerialUSB.print(angleErrors.x);
-        SerialUSB.print(";\tey;\t");
+        SerialUSB.print(";\ty;\t");
         SerialUSB.print(angleErrors.y);
-        SerialUSB.print(";\teax;\t");
-        SerialUSB.print(gyro_sum.x);
-        SerialUSB.print(";\teay;\t");
-        SerialUSB.println(gyro_sum.y);
+        SerialUSB.print(";\ta;\t");
+        SerialUSB.print(motor_value_a);
+        SerialUSB.print(";\tb;\t");
+        SerialUSB.print(motor_value_b);
+        SerialUSB.print(";\tc;\t");
+        SerialUSB.print(motor_value_c);
+        SerialUSB.print(";\td;\t");
+        SerialUSB.println(motor_value_d);
     }
-    if (false == console_getDebugArmedStatus())
-    {
-        motor_value_a = 0;
-        motor_value_b = 0;
-        motor_value_c = 0;
-        motor_value_d = 0;
-    }
-    
-    setMotorValue(MOTOR_A, motor_value_a);
-    setMotorValue(MOTOR_C, motor_value_c);
-    setMotorValue(MOTOR_B, motor_value_b);
-    setMotorValue(MOTOR_D, motor_value_d);
+
+    setMotorValue(MOTOR_A, motor_value_a, console_getDebugArmedStatus());
+    setMotorValue(MOTOR_C, motor_value_c, console_getDebugArmedStatus());
+    setMotorValue(MOTOR_B, motor_value_b, console_getDebugArmedStatus());
+    setMotorValue(MOTOR_D, motor_value_d, console_getDebugArmedStatus());
   }
 }
 

@@ -137,6 +137,10 @@ void console()
                 SerialUSB.println("Set Motor D offset");
                 setMotorOffset(MOTOR_D, (U8)offset);
                 break;
+            case 'N':
+            case 'n':
+                reinit_gyro();
+                break;
             default:
                 SerialUSB.println("Unknown command.");
                 break;

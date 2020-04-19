@@ -46,24 +46,38 @@ void setup_motor(void)
   @desc Set motor value
   @param motorId: identifier of the motor
   @param value: min value MOTOR_MIN_VALUE, max value MOTOR_MAX_VALUE
+  @param isArmed: if motor is not armed, it won't turn
   @return void
 */
-void setMotorValue(const short motorId, const short value)
+void setMotorValue(const short motorId, const S16 value, const bool isArmed)
 {
-    short valueWithOffset = 0;
+    S16 valueWithOffset = 0;
 
     if (motorId < MOTOR_MAX)
     {
-        valueWithOffset = value + motorConfig[motorId].motor_offset;
+        if (isArmed)
+        {         
 
-        if ((valueWithOffset) > MOTOR_MAX_VALUE)
-        {
-            analogWrite(motorConfig[motorId].motor_pin, MOTOR_MAX_THROTTLE);
+          valueWithOffset = value + motorConfig[motorId].motor_offset;
+
+          if (valueWithOffset > MOTOR_MAX_VALUE)
+          {
+              analogWrite(motorConfig[motorId].motor_pin, MOTOR_MAX_THROTTLE);
+          }
+          else if (valueWithOffset < motorConfig[motorId].motor_offset)
+          {
+              analogWrite(motorConfig[motorId].motor_pin, (MOTOR_MIN_THROTTLE + motorConfig[motorId].motor_offset));
+          }
+          else
+          {
+              analogWrite(motorConfig[motorId].motor_pin, (MOTOR_MIN_THROTTLE + valueWithOffset));
+          }
         }
         else
         {
-            analogWrite(motorConfig[motorId].motor_pin, (MOTOR_MIN_THROTTLE + valueWithOffset));
+            analogWrite(motorConfig[motorId].motor_pin, MOTOR_MIN_THROTTLE);
         }
+
     }
 }
 

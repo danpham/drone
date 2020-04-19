@@ -61,11 +61,9 @@ void print_Pidx() {
     SerialUSB.println(pid_x.coeff_d);
 }
 
-
 void regulation_loop(angle_errors values /* consigne */) {
   pid(values.x, values.y, &pid_x, &pid_y, &quadcopter);
 }
-
 
 static void pid(float angle_error_x, float angle_error_y, dpid_t * values_x, dpid_t * values_y, quad_motors * motors)
 {
@@ -96,30 +94,9 @@ static void pid(float angle_error_x, float angle_error_y, dpid_t * values_x, dpi
   last_angle_error_x = angle_error_x;
   last_angle_error_y = angle_error_y;
 
-  if (command_x > 0)
-  {
-      motors->motor_1_value = command_x;
-      motors->motor_2_value = command_x;
-      motors->motor_3_value = 0;
-      motors->motor_4_value = 0;
-  }
-  else
-  {
-      motors->motor_1_value = 0;
-      motors->motor_2_value = 0;
-      motors->motor_3_value = -1*command_x;
-      motors->motor_4_value = -1*command_x;
-  }
-
-  if (command_y > 0)
-  {
-      motors->motor_2_value += command_y;
-      motors->motor_3_value += command_y;
-  }
-  else
-  {
-      motors->motor_1_value += -1*command_y;
-      motors->motor_4_value += -1*command_y;
-  }
+  motors->motor_1_value = command_x + command_y;
+  motors->motor_2_value = command_x -1 * command_y;
+  motors->motor_3_value = -1 * command_x -1 * command_y;
+  motors->motor_4_value = -1 * command_x + command_y;
 }
 
