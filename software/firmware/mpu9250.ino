@@ -207,7 +207,7 @@ static void init_gyro(void)
 
   if (0 == counter)
   {
-    draw("Gyro offs");      
+    draw("Gyro\ncalib.");      
   }
 
   gyro_results = read_gyro();
@@ -259,7 +259,7 @@ void TC3_Handler() {
       {
         pwm_counter = RX_MIN;
       }
-      pwm_value = ((pwm_counter >> 5) - 31) * 3;
+      pwm_value = ((pwm_counter >> 5) - 31) * 24;
 
       pwmNew = false;
     }

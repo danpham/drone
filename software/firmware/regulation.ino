@@ -5,7 +5,7 @@
 /******************************************************************
  * 2. Define declarations (macros then function macros)
 ******************************************************************/
-#define P_DEFAULT_GAIN    2.0
+#define P_DEFAULT_GAIN    32.0
 #define I_DEFAULT_GAIN    0.0
 #define D_DEFAULT_GAIN    0.0
 

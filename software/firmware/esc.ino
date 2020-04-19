@@ -34,6 +34,9 @@ void setup_esc()
   pinMode(MOTOR_C_PIN, OUTPUT);
   pinMode(MOTOR_D_PIN, OUTPUT);
 
+  /* Set PWM resolution to 12-bits */
+  analogWriteResolution(12);
+
   analogWrite(MOTOR_A_PIN, MOTOR_HI_THROTTLE);
   analogWrite(MOTOR_B_PIN, MOTOR_HI_THROTTLE);
   analogWrite(MOTOR_C_PIN, MOTOR_HI_THROTTLE);

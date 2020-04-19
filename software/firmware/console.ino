@@ -41,7 +41,7 @@ void console()
     String serialData;
     String command;
     float value = 0;
-    U8 offset = 0;
+    U16 offset = 0;
 
     if (SerialUSB.available() > 0)
     {
@@ -117,25 +117,25 @@ void console()
             case 'w':
                 offset = atoi(serialData.c_str());
                 SerialUSB.println("Set Motor A offset");
-                setMotorOffset(MOTOR_A, (U8)offset);
+                setMotorOffset(MOTOR_A, offset);
                 break;
             case 'X':
             case 'x':
                 offset = atoi(serialData.c_str());
                 SerialUSB.println("Set Motor B offset");
-                setMotorOffset(MOTOR_B, (U8)offset);
+                setMotorOffset(MOTOR_B, offset);
                 break;
             case 'C':
             case 'c':
                 offset = atoi(serialData.c_str());
                 SerialUSB.println("Set Motor C offset");
-                setMotorOffset(MOTOR_C, (U8)offset);
+                setMotorOffset(MOTOR_C, offset);
                 break;
             case 'V':
             case 'v':
                 offset = atoi(serialData.c_str());
                 SerialUSB.println("Set Motor D offset");
-                setMotorOffset(MOTOR_D, (U8)offset);
+                setMotorOffset(MOTOR_D, offset);
                 break;
             case 'N':
             case 'n':

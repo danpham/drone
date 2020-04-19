@@ -27,19 +27,19 @@ void setup_motor(void)
 {
     motorConfig[MOTOR_A].motor_pin = MOTOR_A_PIN;
     motorConfig[MOTOR_A].motor_gain = 1.0;
-    motorConfig[MOTOR_A].motor_offset = 24;
+    motorConfig[MOTOR_A].motor_offset = 384;
 
     motorConfig[MOTOR_B].motor_pin = MOTOR_B_PIN;
     motorConfig[MOTOR_B].motor_gain = 1.0;
-    motorConfig[MOTOR_B].motor_offset = 24;
+    motorConfig[MOTOR_B].motor_offset = 384;
 
     motorConfig[MOTOR_C].motor_pin = MOTOR_C_PIN;
     motorConfig[MOTOR_C].motor_gain = 1.0;
-    motorConfig[MOTOR_C].motor_offset = 24;
+    motorConfig[MOTOR_C].motor_offset = 384;
 
     motorConfig[MOTOR_D].motor_pin = MOTOR_D_PIN;
     motorConfig[MOTOR_D].motor_gain = 1.0;
-    motorConfig[MOTOR_D].motor_offset = 24;
+    motorConfig[MOTOR_D].motor_offset = 384;
 }
 
 /**
@@ -49,7 +49,7 @@ void setup_motor(void)
   @param isArmed: if motor is not armed, it won't turn
   @return void
 */
-void setMotorValue(const short motorId, const S16 value, const bool isArmed)
+void setMotorValue(const U8 motorId, const S16 value, const bool isArmed)
 {
     S16 valueWithOffset = 0;
 
@@ -57,8 +57,7 @@ void setMotorValue(const short motorId, const S16 value, const bool isArmed)
     {
         if (isArmed)
         {         
-
-          valueWithOffset = value + motorConfig[motorId].motor_offset;
+          valueWithOffset = value + (S16)motorConfig[motorId].motor_offset;
 
           if (valueWithOffset > MOTOR_MAX_VALUE)
           {
@@ -118,7 +117,7 @@ float getMotorGain(const U8 motorId)
   @param value: offset for selected motor
   @return void
 */
-void setMotorOffset(const U8 motorId, const U8 offset)
+void setMotorOffset(const U8 motorId, const U16 offset)
 {
     if (motorId < MOTOR_MAX)
     {
@@ -129,11 +128,11 @@ void setMotorOffset(const U8 motorId, const U8 offset)
 /**
   @desc Get motor offset
   @param motorId: identifier of the motor
-  @return U8
+  @return U16
 */
-U8 getMotorOffset(const U8 motorId)
+U16 getMotorOffset(const U8 motorId)
 {
-    U8 motorOffset = 0;
+    U16 motorOffset = 0;
 
     if (motorId < MOTOR_MAX)
     {
