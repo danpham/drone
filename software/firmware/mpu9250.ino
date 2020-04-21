@@ -15,7 +15,8 @@
    2. Define declarations (macros then function macros)
 ******************************************************************/
 #define NCS_PIN 4
-#define TIMER_FREQ 150
+#define TIMER_FREQ 400
+#define SQRT2 1.4142135623731
 
 /******************************************************************
    3. Typedef definitions (simple typedef, then enum and structs)
@@ -114,6 +115,12 @@ void setup_driver()
       SerialUSB.println(id, HEX);
   }
 
+  /* Disable any gyroscope filtering FCHOICE_B[1:0]='11' */
+  SPI_write_register(MPU6500_RA_GYRO_CONFIG, 0x03);
+
+  /* Disable any accelerometer filtering FCHOICE_B[3:2]='11' */
+  SPI_write_register(MPU6500_RA_FF_THR, 0x0C);
+
   /* Gyro range selection: 0x00 250 degrees per second */
   id = SPI_read_register(MPU6500_RA_GYRO_CONFIG);
   SerialUSB.print("GYRO_FS_SEL: ");
@@ -123,17 +130,10 @@ void setup_driver()
   SerialUSB.print("Test ACCEL_FS_SEL: ");
   SerialUSB.println(id, HEX);
 
-  /* Gyroscope filter
-    Frequency = 1KHz, bandwith = 92Hz (0x02) */
-  SPI_write_register(MPU6500_RA_CONFIG, 0x02);
-
   id = SPI_read_register(MPU6500_RA_CONFIG);
   SerialUSB.print("Test MPU6500_RA_CONFIG: ");
   SerialUSB.println(id, HEX);
 
-  /* Accelerometer filter
-    Frequency = 1KHz, bandwith = 99Hz (0x02) */
-  SPI_write_register(MPU6500_RA_FF_THR, 0x02);
   id = SPI_read_register(MPU6500_RA_FF_THR);
   SerialUSB.print("Test MPU6500_RA_FF_THR: ");
   SerialUSB.println(id, HEX);
@@ -236,7 +236,7 @@ static void init_gyro(void)
 void TC3_Handler() {
   gyro_t gyro_results;
   TC_GetStatus(TC1, 0);
-  static unsigned long pwm_value = 0;
+  static U16 throttle = 0;
   static angle_errors angleErrors;
   static angle_errors accelAngles;
 
@@ -259,7 +259,7 @@ void TC3_Handler() {
       {
         pwm_counter = RX_MIN;
       }
-      pwm_value = ((pwm_counter >> 5) - 31) * 24;
+      throttle = ((pwm_counter >> 5) - 31) * 48;
 
       pwmNew = false;
     }
@@ -311,34 +311,33 @@ void TC3_Handler() {
         
     }
   
+    /* Apply complementary filter */
     gyro_sum.x = 0.98 * gyro_sum.x + 0.02 * accelAngles.x;
     gyro_sum.y = 0.98 * gyro_sum.y + 0.02 * accelAngles.y;
 
-    angleErrors.x = gyro_sum.x;
-    angleErrors.y = gyro_sum.y;
+    /* Get the correct the correct angle since MPU is rotated from 45 degrees */
+    angleErrors.x = atan(tan(gyro_sum.x * DEG_TO_RAD) / SQRT2) * RAD_TO_DEG;
+    angleErrors.y = atan(tan(gyro_sum.y * DEG_TO_RAD) / SQRT2) * RAD_TO_DEG;
 
     /* Compute new values for motors */
     regulation_loop(angleErrors);
 
-    motor_value_a = quadcopter.motor_1_value + pwm_value * 2;
-    motor_value_b = quadcopter.motor_2_value + pwm_value * 2;
-    motor_value_c = quadcopter.motor_3_value + pwm_value * 2;
-    motor_value_d = quadcopter.motor_4_value + pwm_value * 2;
+    motor_value_a = quadcopter.motor_1_value + throttle;
+    motor_value_b = quadcopter.motor_2_value + throttle;
+    motor_value_c = quadcopter.motor_3_value + throttle;
+    motor_value_d = quadcopter.motor_4_value + throttle;
           
     if (console_getDebugInfoStatus())
     {        
-        SerialUSB.print("x;\t");
         SerialUSB.print(angleErrors.x);
-        SerialUSB.print(";\ty;\t");
+        SerialUSB.print("\t");
         SerialUSB.print(angleErrors.y);
-        SerialUSB.print(";\ta;\t");
+        SerialUSB.print("\t");
         SerialUSB.print(motor_value_a);
-        SerialUSB.print(";\tb;\t");
-        SerialUSB.print(motor_value_b);
-        SerialUSB.print(";\tc;\t");
+        SerialUSB.print("\t");
         SerialUSB.print(motor_value_c);
-        SerialUSB.print(";\td;\t");
-        SerialUSB.println(motor_value_d);
+        SerialUSB.print("\t");
+        SerialUSB.println(throttle);
     }
 
     setMotorValue(MOTOR_A, motor_value_a, console_getDebugArmedStatus());
