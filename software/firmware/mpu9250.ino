@@ -17,6 +17,11 @@
 #define NCS_PIN 4
 #define TIMER_FREQ 400
 #define SQRT2 1.4142135623731
+#define GYRO_INIT_SAMPLE_NB 1000
+#define ACCEL_VALUES_NB 1000
+#define ACCEL_SCALE_FACTOR 4096
+#define GYRO_SCALE_FACTOR 65.5
+#define MOVING_AVG_SIZE 6
 
 /******************************************************************
    3. Typedef definitions (simple typedef, then enum and structs)
@@ -70,7 +75,8 @@ void setup_driver()
   SPI.begin(NCS_PIN);
   SPI.setDataMode(NCS_PIN, SPI_MODE0);
   SPI.setBitOrder(NCS_PIN, MSBFIRST);
-  /* 1MHz */
+  
+  /* Access configuration registers at 1MHz */
   SPI.setClockDivider(NCS_PIN, 84);
 
   SerialUSB.println("MPU driver is starting");
@@ -87,41 +93,23 @@ void setup_driver()
   /* page 42 - delay 100ms */
   delay(100);
 
-  /* set SPI mode by setting I2C_IF_DIS
-    reset DMP, FIFO, SIG */
-  SPI_write_register(MPU6500_RA_USER_CTRL, 0x10 | 0x8 | 0x4 | 0x1);
-
+  /* set SPI mode by setting I2C_IF_DIS */
+  SPI_write_register(MPU6500_RA_USER_CTRL, 0x10);
+  
   delay(1000);
 
-  id = SPI_read_register(MPU6500_RA_WHO_AM_I);
-  switch (id) {
-    case 0x68:
-      SerialUSB.println("Sensor is MPU6050");
-      break;
-    case 0x70:
-      SerialUSB.println("Sensor is MPU6500");
-      break;
-    case 0x71:
-      SerialUSB.println("Sensor is MPU9250");
-      break;
-    case 0x73:
-      SerialUSB.println("Sensor is MPU9255");
-      break;
-    case 0x74:
-      SerialUSB.println("Sensor is MPU6515");
-      break;
-    default:
-      SerialUSB.print("Unknown sensor: ");
-      SerialUSB.println(id, HEX);
-  }
+  /* Enable gyroscope filtering FCHOICE_B[1:0]='11' : 41 Hz */
+  SPI_write_register(MPU6500_RA_CONFIG, 0x03);
 
-  /* Disable any gyroscope filtering FCHOICE_B[1:0]='11' */
-  SPI_write_register(MPU6500_RA_GYRO_CONFIG, 0x03);
+  /* Enable accelerometer filtering FCHOICE_B[3:2]='11' : 41 Hz */
+  SPI_write_register(MPU6500_RA_FF_THR, 0x03);
 
-  /* Disable any accelerometer filtering FCHOICE_B[3:2]='11' */
-  SPI_write_register(MPU6500_RA_FF_THR, 0x0C);
+  /* Gyro config: 500dps */
+  SPI_write_register(MPU6500_RA_GYRO_CONFIG, 0x08);
+  
+  /* Accelerometer config: 8G */
+  SPI_write_register(MPU6500_RA_ACCEL_CONFIG, 0x10);
 
-  /* Gyro range selection: 0x00 250 degrees per second */
   id = SPI_read_register(MPU6500_RA_GYRO_CONFIG);
   SerialUSB.print("GYRO_FS_SEL: ");
   SerialUSB.println(id, HEX);
@@ -138,11 +126,11 @@ void setup_driver()
   SerialUSB.print("Test MPU6500_RA_FF_THR: ");
   SerialUSB.println(id, HEX);
 
-  /* set SPI mode by setting I2C_IF_DIS */
-  SPI_write_register(MPU6500_RA_USER_CTRL, 0x10);
+  id = SPI_read_register(MPU6500_RA_USER_CTRL);
+  SerialUSB.print("Test MPU6500_RA_USER_CTRL: ");
+  SerialUSB.println(id, HEX);
 
-  /* speed up to take data
-    10.5MHz; 7 sometimes works */
+  /* Burst reading at 4Mhz (Arduino Due 84Mhz. Divider: 21 */
   SPI.setClockDivider(NCS_PIN, 21);
 
   startTimer(TC1, 0, TC3_IRQn, TIMER_FREQ);
@@ -168,9 +156,9 @@ static accel_t read_accel(void)
 {
   accel_t accel_results;
 
-  accel_results.x = (float)read_short_value(MPU6500_RA_ACCEL_XOUT_H, MPU6500_RA_ACCEL_XOUT_L);
-  accel_results.y = (float)read_short_value(MPU6500_RA_ACCEL_YOUT_H, MPU6500_RA_ACCEL_YOUT_L);
-  accel_results.z = (float)read_short_value(MPU6500_RA_ACCEL_ZOUT_H, MPU6500_RA_ACCEL_ZOUT_L);
+  accel_results.x = (F32)read_short_value(MPU6500_RA_ACCEL_XOUT_H, MPU6500_RA_ACCEL_XOUT_L);
+  accel_results.y = (F32)read_short_value(MPU6500_RA_ACCEL_YOUT_H, MPU6500_RA_ACCEL_YOUT_L);
+  accel_results.z = (F32)read_short_value(MPU6500_RA_ACCEL_ZOUT_H, MPU6500_RA_ACCEL_ZOUT_L);
 
   return accel_results;
 }
@@ -190,22 +178,24 @@ static gyro_t read_gyro(void)
   gyroY = read_short_value(MPU6500_RA_GYRO_YOUT_H, MPU6500_RA_GYRO_YOUT_L);
   gyroZ = read_short_value(MPU6500_RA_GYRO_ZOUT_H, MPU6500_RA_GYRO_ZOUT_L);
 
-  gyro_results.x = (float)((float)gyroX / (131 * TIMER_FREQ));
-  gyro_results.y = (float)((float)gyroY / (131 * TIMER_FREQ));
-  gyro_results.z = (float)((float)gyroZ / (131 * TIMER_FREQ));
+  gyro_results.x = (F32)((F32)gyroX / ((F32)GYRO_SCALE_FACTOR * (F32)TIMER_FREQ));
+  gyro_results.y = (F32)((F32)gyroY / ((F32)GYRO_SCALE_FACTOR * (F32)TIMER_FREQ));
+  gyro_results.z = (F32)((F32)gyroZ / ((F32)GYRO_SCALE_FACTOR * (F32)TIMER_FREQ));
 
   return gyro_results;
 }
 
 /**
-  @desc Compute the offset mean of gyroscopes and accelerometers
+  @desc Compute the offset mean of gyroscope
   @return void
 */
 static void init_gyro(void)
 {
   gyro_t gyro_results;
 
-  if (0 == counter)
+  counter++;
+
+  if (1 == counter)
   {
     draw("Gyro\ncalib.");      
   }
@@ -215,31 +205,36 @@ static void init_gyro(void)
   gyro_offsets.y += gyro_results.y;
   gyro_offsets.z += gyro_results.z;
 
-  if (999 == counter)
+  if (GYRO_INIT_SAMPLE_NB == counter)
   {
-    gyro_offsets.x /= 1000;
-    gyro_offsets.y /= 1000;
-    gyro_offsets.z /= 1000;
+    gyro_offsets.x /= GYRO_INIT_SAMPLE_NB;
+    gyro_offsets.y /= GYRO_INIT_SAMPLE_NB;
+    gyro_offsets.z /= GYRO_INIT_SAMPLE_NB;
 
     gyro_initialized = true;
     SerialUSB.println("gyro_offsets.x");
-    SerialUSB.println(gyro_offsets.x,5);
+    SerialUSB.println(gyro_offsets.x, 5);
     SerialUSB.println("gyro_offsets.y");
-    SerialUSB.println(gyro_offsets.y,5);
+    SerialUSB.println(gyro_offsets.y, 5);
     SerialUSB.println("gyro_offsets.z");
-    SerialUSB.println(gyro_offsets.z,5);
+    SerialUSB.println(gyro_offsets.z, 5);
     draw("Drone\nready!");
   }
-  counter++;
 }
 
-void TC3_Handler() {
+void TC3_Handler()
+{
+  static U8 outValue = 1;
   gyro_t gyro_results;
   TC_GetStatus(TC1, 0);
-  static U16 throttle = 0;
+  static S16 throttle = 0;
   static angle_errors angleErrors;
   static angle_errors accelAngles;
-
+  static angle_errors accelAnglesFiltered;
+  static angle_errors accelAnglesTmp[MOVING_AVG_SIZE];
+  static angle_errors gyroAnglesFiltered;
+  static angle_errors gyroAnglesTmp[MOVING_AVG_SIZE];
+  
   accel_t accel_results;
   short int motor_value_a = 0;
   short int motor_value_b = 0;
@@ -265,15 +260,15 @@ void TC3_Handler() {
     }
 
     gyro_results = read_gyro();
-    gyro_sum.x += (gyro_results.x - gyro_offsets.x);
-    gyro_sum.y += (gyro_results.y - gyro_offsets.y);
+    gyro_sum.x = (gyro_results.x - gyro_offsets.x);
+    gyro_sum.y = (gyro_results.y - gyro_offsets.y);
 
     accel_results = read_accel();
-    accel_results.x /= 16384;
-    accel_results.y /= 16384;
-    accel_results.z /= 16384;
+    accel_results.x /= ACCEL_SCALE_FACTOR;
+    accel_results.y /= ACCEL_SCALE_FACTOR;
+    accel_results.z /= ACCEL_SCALE_FACTOR;
     
-    float module_x = sqrt(accel_results.x * accel_results.x + accel_results.z * accel_results.z);
+    float module_x = sqrt(pow(accel_results.x, 2) + pow(accel_results.z, 2));
 
     if (module_x != 0.0)
     {
@@ -281,18 +276,13 @@ void TC3_Handler() {
     }
     else
     {
-        if (accel_results.x > 0)
-        {
-            accelAngles.x = 90.0;  
-        }
-        else
+        if (accel_results.x < 0)
         {
             accelAngles.x = -90.0;  
         }
-        
     }
     
-    float module_y = sqrt(accel_results.y * accel_results.y + accel_results.z * accel_results.z);
+    F32 module_y = sqrt(pow(accel_results.y, 2) + pow(accel_results.z, 2));
 
     if (module_y != 0.0)
     {
@@ -300,24 +290,55 @@ void TC3_Handler() {
     }
     else
     {
-        if (accel_results.y > 0)
-        {
-            accelAngles.y = 90.0;  
-        }
-        else
+        accelAngles.y = 90.0;
+          
+        if (accel_results.y < 0)
         {
             accelAngles.y = -90.0;  
         }
-        
     }
-  
-    /* Apply complementary filter */
-    gyro_sum.x = 0.98 * gyro_sum.x + 0.02 * accelAngles.x;
-    gyro_sum.y = 0.98 * gyro_sum.y + 0.02 * accelAngles.y;
 
-    /* Get the correct the correct angle since MPU is rotated from 45 degrees */
-    angleErrors.x = atan(tan(gyro_sum.x * DEG_TO_RAD) / SQRT2) * RAD_TO_DEG;
-    angleErrors.y = atan(tan(gyro_sum.y * DEG_TO_RAD) / SQRT2) * RAD_TO_DEG;
+    // Shift data
+    for (int i = 0; i < (MOVING_AVG_SIZE - 1); i++)
+    {
+        accelAnglesTmp[i].x = accelAnglesTmp[i+1].x;
+        accelAnglesTmp[i].y = accelAnglesTmp[i+1].y;
+        gyroAnglesTmp[i].x = gyroAnglesTmp[i+1].x;
+        gyroAnglesTmp[i].y = gyroAnglesTmp[i+1].y;
+    }
+    
+    // Add latest data
+    accelAnglesTmp[MOVING_AVG_SIZE - 1].x = accelAngles.x;
+    accelAnglesTmp[MOVING_AVG_SIZE - 1].y = accelAngles.y;
+    gyroAnglesTmp[MOVING_AVG_SIZE - 1].x = gyro_sum.x;
+    gyroAnglesTmp[MOVING_AVG_SIZE - 1].y = gyro_sum.y;
+
+    //SerialUSB.print(accelAnglesTmp[MOVING_AVG_SIZE - 1].y, 5);
+    //SerialUSB.print("\t");
+
+    // Mean
+    accelAnglesFiltered.x = 0;
+    accelAnglesFiltered.y = 0; 
+    gyroAnglesFiltered.x = 0;
+    gyroAnglesFiltered.y = 0;
+    for (int i = 0; i < MOVING_AVG_SIZE; i++)
+    {
+        accelAnglesFiltered.x += accelAnglesTmp[i].x;
+        accelAnglesFiltered.y += accelAnglesTmp[i].y;
+        gyroAnglesFiltered.x += gyroAnglesTmp[i].x;
+        gyroAnglesFiltered.y += gyroAnglesTmp[i].y;
+    }
+
+    accelAnglesFiltered.x = accelAnglesFiltered.x / (F32)MOVING_AVG_SIZE;
+    accelAnglesFiltered.y = accelAnglesFiltered.y / (F32)MOVING_AVG_SIZE;
+    gyroAnglesFiltered.x = gyroAnglesFiltered.x / (F32)MOVING_AVG_SIZE;
+    gyroAnglesFiltered.y = gyroAnglesFiltered.y / (F32)MOVING_AVG_SIZE;
+
+    
+    /* Apply complementary filter */
+#define ALPHA    0.98
+    angleErrors.x = ALPHA * (angleErrors.x + gyro_sum.x) + (1 - ALPHA) * accelAngles.x;
+    angleErrors.y = ALPHA * (angleErrors.y + gyro_sum.y) + (1 - ALPHA) * accelAngles.y;
 
     /* Compute new values for motors */
     regulation_loop(angleErrors);
@@ -326,22 +347,10 @@ void TC3_Handler() {
     motor_value_b = quadcopter.motor_2_value + throttle;
     motor_value_c = quadcopter.motor_3_value + throttle;
     motor_value_d = quadcopter.motor_4_value + throttle;
-          
-    if (console_getDebugInfoStatus())
-    {        
-        SerialUSB.print(angleErrors.x);
-        SerialUSB.print("\t");
-        SerialUSB.print(angleErrors.y);
-        SerialUSB.print("\t");
-        SerialUSB.print(motor_value_a);
-        SerialUSB.print("\t");
-        SerialUSB.print(motor_value_c);
-        SerialUSB.print("\t");
-        SerialUSB.println(throttle);
-    }
 
-    setMotorValue(MOTOR_A, motor_value_a, console_getDebugArmedStatus());
-    setMotorValue(MOTOR_C, motor_value_c, console_getDebugArmedStatus());
+    SerialUSB.println(angleErrors.y);
+    //setMotorValue(MOTOR_A, motor_value_a, console_getDebugArmedStatus());
+    //setMotorValue(MOTOR_C, motor_value_c, console_getDebugArmedStatus());
     setMotorValue(MOTOR_B, motor_value_b, console_getDebugArmedStatus());
     setMotorValue(MOTOR_D, motor_value_d, console_getDebugArmedStatus());
   }

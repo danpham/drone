@@ -52,7 +52,8 @@ void setup_motor(void)
 void setMotorValue(const U8 motorId, const S16 value, const bool isArmed)
 {
     S16 valueWithOffset = 0;
-
+    S16 motorValue = 0;
+    
     if (motorId < MOTOR_MAX)
     {
         if (isArmed)
@@ -61,15 +62,24 @@ void setMotorValue(const U8 motorId, const S16 value, const bool isArmed)
 
           if (valueWithOffset > MOTOR_MAX_VALUE)
           {
-              analogWrite(motorConfig[motorId].motor_pin, MOTOR_MAX_THROTTLE);
+              motorValue = MOTOR_MAX_THROTTLE;
           }
           else if (valueWithOffset < motorConfig[motorId].motor_offset)
           {
-              analogWrite(motorConfig[motorId].motor_pin, (MOTOR_MIN_THROTTLE + motorConfig[motorId].motor_offset));
+              motorValue = MOTOR_MIN_THROTTLE + motorConfig[motorId].motor_offset;
           }
           else
           {
-              analogWrite(motorConfig[motorId].motor_pin, (MOTOR_MIN_THROTTLE + valueWithOffset));
+              motorValue = MOTOR_MIN_THROTTLE + valueWithOffset;
+          }
+          
+          analogWrite(motorConfig[motorId].motor_pin, motorValue);
+
+          if (motorId == MOTOR_B){
+            //SerialUSB.print(motorValue);
+            //SerialUSB.print("\t");
+          } else {
+            //SerialUSB.println(motorValue);
           }
         }
         else

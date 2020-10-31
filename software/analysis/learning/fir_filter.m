@@ -49,6 +49,8 @@ end
 spectrum_filtered = fftshift(abs(fft(filtered_output)));
 
 % Display results
+
+
 subplot(2,2,1)
 plot(original_output);
 title('Input signal')
@@ -66,3 +68,10 @@ plot(f,spectrum_filtered);
 title('Output spectrum')
 
 sgtitle('FIR filter')
+
+% Display Bode diagram
+figure;
+num = filter;
+den = [ 1 ];
+H = tf(num, den, 1/fe);
+bode(H)

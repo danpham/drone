@@ -5,7 +5,7 @@
 /******************************************************************
  * 2. Define declarations (macros then function macros)
 ******************************************************************/
-#define P_DEFAULT_GAIN    8.0
+#define P_DEFAULT_GAIN    2.0
 #define I_DEFAULT_GAIN    0.0
 #define D_DEFAULT_GAIN    0.0
 
@@ -24,7 +24,7 @@ quad_motors quadcopter;
 /******************************************************************
  * 5. Functions prototypes (static only)
 ******************************************************************/
-static void pid(float angle_error_x, float angle_error_y, dpid_t * values_x, dpid_t * values_y, quad_motors * motors);
+static void pid(const float angle_error_x, const float angle_error_y, const dpid_t * values_x, const dpid_t * values_y, quad_motors * motors);
 
 void setPidx_P(float p) {
   pid_x.coeff_p = p;
@@ -64,37 +64,16 @@ void regulation_loop(angle_errors values /* consigne */) {
   pid(values.x, values.y, &pid_x, &pid_y, &quadcopter);
 }
 
-static void pid(float angle_error_x, float angle_error_y, dpid_t * values_x, dpid_t * values_y, quad_motors * motors)
+static void pid(const float angle_error_x, const float angle_error_y, const dpid_t * values_x, const dpid_t * values_y, quad_motors * motors)
 {
   short int command_x = 0;
   short int command_y = 0;
-  static float last_angle_error_x = 0;
-  static float last_angle_error_y = 0;
 
-  /* Add the error to the sum */
-  values_x->sum_error += angle_error_x;
-  values_y->sum_error += angle_error_y;
+  command_x = (short int)(values_x->coeff_p * angle_error_x);
+  command_y = (short int)(values_y->coeff_p * angle_error_y);
 
-  /* Check sum error does not grow */
-  if ((values_x->sum_error > 100) || (values_x->sum_error < -100))
-  {
-    values_x->sum_error = 0;
-  }
-
-  /* Check sum error does not grow */
-  if ((values_y->sum_error > 100) || (values_y->sum_error < -100))
-  {
-    values_y->sum_error = 0;
-  }
-
-  command_x = (short int)(values_x->coeff_p * angle_error_x + values_x->coeff_i * values_x->sum_error + values_x->coeff_d * (angle_error_x - last_angle_error_x));
-  command_y = (short int)(values_y->coeff_p * angle_error_y + values_y->coeff_i * values_y->sum_error + values_y->coeff_d * (angle_error_y - last_angle_error_y));
-
-  last_angle_error_x = angle_error_x;
-  last_angle_error_y = angle_error_y;
-
-  motors->motor_1_value = command_x;
-  motors->motor_2_value = -1 * command_y;
-  motors->motor_3_value = -1 * command_x;
-  motors->motor_4_value = command_y;
+  motors->motor_1_value = 0;
+  motors->motor_2_value = command_y;
+  motors->motor_3_value = 0;
+  motors->motor_4_value = -1 * command_y;
 }
