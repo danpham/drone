@@ -1,3 +1,3 @@
 # drone
 
-Arduino DUE based drone.
+Arduino DUE based drone
